@@ -3,9 +3,10 @@ import paho.mqtt.client as mqtt
 import time
 import sys
 import requests
-from secrets import public_key
 import json
 import os
+
+public_key = '7JD1NG3mWNuGVqEpqWK0'
 
 def fetch_dust():
     url = 'https://data.sparkfun.com/output/' + public_key + '.json'
