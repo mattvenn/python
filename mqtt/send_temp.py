@@ -11,9 +11,14 @@ public_key = 'J9bKz84Wx8CX4ryLvAJYuv9o3NP'  # valencia temp
 
 def fetch_temp():
     url = 'http://phant.cursivedata.co.uk/output/' + public_key + '.json'
-    payload = {'gte[timestamp]': 'now-5minutes'}
+    payload = {'gte[timestamp]': 'now-15minutes'}
     r = requests.get(url, params=payload)
-    return float(json.loads(r.text)[0]['temp'])
+    try:
+        temp = float(json.loads(r.text)[0]['temp'])
+        return temp
+    except IndexError:
+        # json valid, but data too old
+        return None
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -31,7 +36,7 @@ if temp is None:
     print("problem fetching data")
     exit(0)
 else:
-    temp = int(temp * 250)
+    temp = int(temp * 1000/40)
     print("sending temp=%d" % temp)
     
 client = mqtt.Client()
