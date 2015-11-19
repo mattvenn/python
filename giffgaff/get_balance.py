@@ -57,9 +57,12 @@ response = session.post(url, data=auth_data)
 # check ok response
 assert response.status_code == 200, "didn't get 200"
 
-# check user cookies
-assert 'napaId' in session.cookies, "no napaId cookie: unsucessful login"
-assert 'napaUser' in session.cookies, "no napaUser cookie: unsucessful login"
+# check for multiple failed attempts
+assert not "many failed attempts" in response.text, "too many failed attempts"
+
+# check user cookies 
+assert 'napaId' in session.cookies, "no napaId cookie: check username/password"
+assert 'napaUser' in session.cookies, "no napaUser cookie: check username/password"
 
 # check redirect
 assert response.history[0].status_code == 301, "no redirect"
