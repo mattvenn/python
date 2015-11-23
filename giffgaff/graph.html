@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- EXTERNAL LIBS-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://www.google.com/jsapi"></script>
+
+    <!-- EXAMPLE SCRIPT -->
+    <script>
+
+      // onload callback
+      function drawChart() {
+
+        var public_key = "28MKq4pMEvIMabd24JYBUvX6ZpM";
+
+        // JSONP request
+        var jsonData = $.ajax({
+          url: 'http://phant.cursivedata.co.uk/output/' + public_key + '.json',
+          data: {'sample': 5, 'gte' :{'timestamp' : 'now - 7 days'}},
+          dataType: 'jsonp',
+	  
+        }).done(function (results) {
+
+          var data = new google.visualization.DataTable();
+
+          data.addColumn('datetime', 'Time');
+          data.addColumn('number', 'data (MB)');
+
+          $.each(results, function (i, row) {
+            data.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.data),
+            ]);
+          });
+
+          var chart = new google.visualization.LineChart($('#chart').get(0));
+
+          chart.draw(data, {
+            title: 'GiffGaff Data',
+            height: 400,
+            hAxis: {
+                        format: 'd/M',
+                    },
+            vAxis: {
+                minValue: 0,
+                maxValue: 6000,
+                    },
+          });
+
+        });
+
+      }
+
+      // load chart lib
+      google.load('visualization', '1', {
+        packages: ['corechart']
+      });
+
+      // call drawChart once google charts is loaded
+      google.setOnLoadCallback(drawChart);
+
+    </script>
+
+  </head>
+  <body>
+    <div id="chart" style="width: 100%;"></div>
+  </body>
+</html>
