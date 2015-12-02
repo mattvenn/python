@@ -89,7 +89,11 @@ data = usage_data[2].text
 days = usage_data[3].text
 
 # this will probably break at some point when format changes
-data = float(data.replace(' GB',''))*1000
+try:
+    data = float(data.replace(' GB',''))*1000
+except ValueError:
+    data = float(data.replace(' MB',''))
+
 days = int(days.replace(' days left',''))
 
 with open("keys.json") as fh:
