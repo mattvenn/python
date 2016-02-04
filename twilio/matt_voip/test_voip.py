@@ -3,9 +3,10 @@ import unittest
 from xml.etree import ElementTree
 import os
 from test_menu import ntd
-from secrets import my_nums
+from secrets import my_nums, http_user, http_pass
 
 import logging
+import base64
 log = logging.getLogger('')
 log.setLevel(logging.INFO)
 
@@ -14,11 +15,27 @@ os.environ["TEST_MODE"] = "TRUE"
 
 class TestVOIP(unittest.TestCase):
 
-    def test_dial(self):
-        self.test_app = app.test_client()
+    def setUp(self):
+        self.app = app.test_client()
 
-        response = self.test_app.post('/dial', data={'Digits':
+    # request handler for basic auth
+    def request(self, method, url, auth=None, **kwargs):
+        headers = kwargs.get('headers', {})
+        if auth:
+            headers['Authorization'] = 'Basic ' + base64.b64encode(auth[0] + ':' + auth[1])
+
+        kwargs['headers'] = headers
+
+        return self.app.open(url, method=method, **kwargs)
+
+    def test_dial_noauth(self):
+        response = self.app.post('/dial', data={'Digits':
             '+15556667777'})
+        self.assertEquals(response.status, "401 UNAUTHORIZED")
+
+    def test_dial(self):
+        response = self.request('POST', '/dial', data={'Digits':
+            '+15556667777'}, auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
 
@@ -32,9 +49,13 @@ class TestVOIP(unittest.TestCase):
         elems = root.findall('Say')
         self.assertEquals(len(elems), 2)
 
-    def test_menu_phonobook(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/menu', data={'Digits': '1'})
+    def test_menu_phonebook_noauth(self):
+        response = self.app.post('/menu', data={'Digits': '1'})
+        self.assertEquals(response.status, "401 UNAUTHORIZED")
+
+    def test_menu_phonebook(self):
+        response = self.request('POST', '/menu', data={'Digits': '1'},
+            auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -47,9 +68,13 @@ class TestVOIP(unittest.TestCase):
         self.assertEquals(len(elems), 1)
         self.assertIn('phonebook', elems[0].text)
 
+    def test_menu_dial_noauth(self):
+        response = self.app.post('/menu', data={'Digits': '2'})
+        self.assertEquals(response.status, "401 UNAUTHORIZED")
+
     def test_menu_dial(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/menu', data={'Digits': '2'})
+        response = self.request('POST', '/menu', data={'Digits': '2'},
+            auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -63,14 +88,13 @@ class TestVOIP(unittest.TestCase):
         self.assertIn('dial', elems[0].text)
 
     def test_menu_bad(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/menu', data={'Digits': '9'})
+        response = self.request('POST', '/menu', data={'Digits': '9'},
+            auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "302 FOUND")
 
     def test_single_phonebook(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/phonebook', data={'Digits': ntd('matt')})
+        response = self.request('POST', '/phonebook', data={'Digits': ntd('matt')}, auth=(http_user, http_pass))
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
         self.assertEquals(root.tag, 'Response')
@@ -81,8 +105,7 @@ class TestVOIP(unittest.TestCase):
         self.assertIn('calling matt', elems[0].text)
 
     def test_no_phonebook(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/phonebook', data={'Digits': ntd('xxx')})
+        response = self.request('POST', '/phonebook', data={'Digits': ntd('xxx')}, auth=(http_user, http_pass))
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
         self.assertEquals(root.tag, 'Response')
@@ -92,9 +115,8 @@ class TestVOIP(unittest.TestCase):
 
         self.assertIn('no numbers found', elems[0].text)
 
-    def test_no_phonebook(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/phonebook', data={'Digits': ntd('tum')})
+    def test_too_many_phonebook(self):
+        response = self.request('POST', '/phonebook', data={'Digits': ntd('tum')}, auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -105,9 +127,12 @@ class TestVOIP(unittest.TestCase):
 
         self.assertIn('more than 1 number found', elems[0].text)
 
+    def test_start_noauth(self):
+        response = self.app.post('/caller', data={'From': my_nums['es']})
+        self.assertEquals(response.status, "401 UNAUTHORIZED")
+
     def test_start_from_me(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/caller', data={'From': my_nums['es']})
+        response = self.request('POST', '/caller', data={'From': my_nums['es']}, auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -119,8 +144,7 @@ class TestVOIP(unittest.TestCase):
         self.assertIn('Hello', elems[0].text)
         
     def test_start(self):
-        self.test_app = app.test_client()
-        response = self.test_app.post('/caller', data={'From': 11111})
+        response = self.request('POST','/caller', data={'From': 11111}, auth=(http_user,http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -136,9 +160,3 @@ class TestVOIP(unittest.TestCase):
 
         self.assertIn(my_nums['uk'], elems[0].text)
 
-        
-        
-        
-        
-        
-        

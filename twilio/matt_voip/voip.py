@@ -5,6 +5,7 @@ import logging, time, socket
 from secrets import my_nums, sid, token
 from menu import Menu
 import os
+from http_auth import requires_auth
 
 log = logging.getLogger('')
 
@@ -20,7 +21,9 @@ mode = 'uk'
 
 app = Flask(__name__)
 
+
 @app.route("/phonebook", methods=['GET', 'POST'])
+@requires_auth
 def phonebook():
     response = twilio.twiml.Response()
     digits = request.values.get('Digits', None)
@@ -41,6 +44,7 @@ def phonebook():
     return str(response)
         
 @app.route("/dial", methods=['GET', 'POST'])
+@requires_auth
 def dial():
     response = twilio.twiml.Response()
     digits = request.values.get('Digits', None)
@@ -51,6 +55,7 @@ def dial():
     return str(response)
 
 @app.route("/menu", methods=['GET', 'POST'])
+@requires_auth
 def menu():
     response = twilio.twiml.Response()
 
@@ -75,6 +80,7 @@ def menu():
         return redirect("/")
 
 @app.route("/caller", methods=['GET', 'POST'])
+@requires_auth
 def forward():
     from_number = request.values.get('From', None) 
     log.debug("got call from [%s]" % (from_number))
