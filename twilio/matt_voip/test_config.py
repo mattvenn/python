@@ -27,7 +27,8 @@ class TestConfig(unittest.TestCase):
 
     def test_get_mp3(self):
         c = Config()
-        self.assertEqual(c.get_mp3_filename(), 'ES.mp3')
+        self.assertEqual(c.get_mp3_filename(twilio_nums[UK]), 'UK.mp3')
+        self.assertEqual(c.get_mp3_filename(twilio_nums[ES]), 'ES.mp3')
 
     def test_set_bad_mode(self):
         c = Config()

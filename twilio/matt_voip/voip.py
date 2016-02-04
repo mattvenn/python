@@ -5,7 +5,7 @@ import logging, time, socket
 from menu import Menu
 import os
 from http_auth import requires_auth
-from config import Config, UK, ES
+from config import Config
 
 log = logging.getLogger('')
 
@@ -16,7 +16,7 @@ if not TEST_MODE:
 else:
     from test_menu import test_contacts as contacts
 
-config = Config(ES)
+config = Config()
 app = Flask(__name__)
 
 
@@ -81,11 +81,13 @@ def menu():
 @requires_auth
 def forward():
     from_number = request.values.get('From', None) 
-    log.debug("got call from [%s]" % (from_number))
+    to_number = request.values.get('To', None) 
+    log.debug("got call from [%s] to [%s]" % (from_number, to_number))
 
     response = twilio.twiml.Response()
 
-    if from_number == config.get_local_mobile():
+    # allow from either mobile numbers
+    if config.is_my_mobile(from_number):
         response.say("Hello " + str(config))
  
         with response.gather(numDigits=1, action="/menu", method="POST") as g:
@@ -94,13 +96,15 @@ def forward():
         return str(response)
     
     else:
-        # play message
-        response.play(url_for('static', filename=config.get_mp3_filename()))
+        # play message in correct language
+        mp3_file = config.get_mp3_filename(to_number)
+
+        response.play(url_for('static', filename=mp3_file))
 
         # dial my number
-        response.dial(config.get_local_mobile())
+        response.dial(config.get_local_mobile(to_number))
 
-        # if the dial fails
+        # if the dial fails TODO message
         response.say("The call failed")
         return str(response)
 

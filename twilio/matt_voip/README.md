@@ -33,7 +33,7 @@ Redirect to Matt's mobile.
 
 # Todo
 
-* nice way to do the 2 modes
 * caller id is right for the country call recieved in
+* mode switched by me calling it
 * on startup send text so I know if it's rebooted
 * save state (en vs es)

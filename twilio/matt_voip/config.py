@@ -1,4 +1,6 @@
 import secrets
+import logging
+log = logging.getLogger(__name__)
 
 UK = 0
 ES = 1
@@ -7,8 +9,13 @@ ES = 1
 If mode is ES:
 
 * I'll be dialing from a Spanish mobile to the Spanish Twilio number.
-* Local number should be the ES Twilio number
-* Foreign number should be the English Twilio number
+* People will be calling UK Twilio which will be redirected to my ES mobile
+
+* Local Twilio should be the ES Twilio number
+* Foreign Twilio should be the English Twilio number
+* Local Mobile should be my ES mobile
+* Foreign Mobile should be my UK mobile
+* Message should be in English
 
 And vice versa.
 """
@@ -34,12 +41,27 @@ class Config():
             return self.twilio_nums[ES]
         else:
             return self.twilio_nums[UK]
-    
-    def get_local_mobile(self):
-        return self.mobile_nums[self.mode]
+   
+    def is_my_mobile(self, number):
+        return number == self.mobile_nums[ES] or number == self.mobile_nums[UK]
 
-    def get_mp3_filename(self):
-        return self.__repr__().replace('.','') + '.mp3'
+    def get_local_mobile(self, twilio_number):
+        if twilio_number == self.twilio_nums[ES]:
+            return self.mobile_nums[UK]
+        elif twilio_number == self.twilio_nums[UK]:
+            return self.mobile_nums[ES]
+        else:
+            log.error("no such twilio number! %s" % twilio_number)
+            return None
+
+    def get_mp3_filename(self, twilio_number):
+        if twilio_number == self.twilio_nums[ES]:
+            return 'ES.mp3'
+        elif twilio_number == self.twilio_nums[UK]:
+            return 'UK.mp3'
+        else:
+            log.error("no such twilio number! %s" % twilio_number)
+            return None
 
     def get_foreign_mobile(self):
         if self.mode == UK:
