@@ -10,15 +10,15 @@ def ntd(name):
     return digits
    
 test_contacts = {
-    'a'   : 1,
-    'd'   : 2,
-    'ad'  : 3,
-    'da'  : 4,
-    'dad' : 5,
-    'matt': 6,
-    'tum' : 7,
-    'tun' : 8,
-    'uuo' : 9,
+    'a'   : '1',
+    'd'   : '2',
+    'ad'  : '3',
+    'da'  : '4',
+    'dad' : '5',
+    'matt': '66',
+    'tum' : '7',
+    'tun' : '8',
+    'uuo' : '9',
     }
 
 class TestMenu(unittest.TestCase):
@@ -59,24 +59,23 @@ class TestMenu(unittest.TestCase):
     def test_single_options_single_digits(self):
         m = Menu(test_contacts)
         assert len(m.get_options('2')) == 1
-        assert m.get_options('2')[0] == 1
+        assert m.get_options('2')[0]['number'] == '1'
 
         assert len(m.get_options('3')) == 1
-        assert m.get_options('3')[0] == 2
+        assert m.get_options('3')[0]['number'] == '2'
 
     def test_single_options_multi_digits(self):
         m = Menu(test_contacts)
 
         for name in ['matt', 'dad', 'da', 'ad']:
             self.assertEqual(len(m.get_options(ntd(name))), 1)
-            self.assertIn(test_contacts[name], m.get_options(ntd(name)))
+            self.assertEqual(test_contacts[name], m.get_options(ntd(name))[0]['number'])
       
     def test_multi_options_multi_digits(self):
         m = Menu(test_contacts)
 
         for name in ['tum', 'tun', 'uuo']:
             self.assertEqual(len(m.get_options(ntd(name))), 3)
-            self.assertIn(test_contacts[name], m.get_options(ntd(name)))
         
 
 if __name__ == '__main__':

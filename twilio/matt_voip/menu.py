@@ -12,7 +12,7 @@ class Menu():
         for c in combos:
             if len(digits) == len(c):
                 if c in self.contacts:
-                    options.append(self.contacts[c])
+                    options.append({'name' : c, 'number': self.contacts[c]})
         return options 
 
 

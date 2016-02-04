@@ -1,36 +1,102 @@
 from voip import app
 import unittest
 from xml.etree import ElementTree
+import os
+from test_menu import ntd
+
+# use test environment
+os.environ["TEST_MODE"] = "TRUE"
 
 class TestVOIP(unittest.TestCase):
 
     def test_dial(self):
-        # Use Flask's test client for our test.
         self.test_app = app.test_client()
 
         response = self.test_app.post('/dial', data={'Digits':
             '+15556667777'})
 
-        # Assert response is 200 OK.                                           
         self.assertEquals(response.status, "200 OK")
 
-        # Parse the result into an ElementTree object
         root = ElementTree.fromstring(response.data)
 
-        # Assert the root element is a Response tag
-        self.assertEquals(root.tag, 'Response',
-                "Did not find  tag as root element " \
-                "TwiML response.")
+        self.assertEquals(root.tag, 'Response')
 
-        # Assert response has one Dial verb
-        dial_query = root.findall('Dial')
-        self.assertEquals(len(dial_query), 1,
-                "Did not find one Dial verb, instead found: %i " %
-                len(dial_query))
+        elems = root.findall('Dial')
+        self.assertEquals(len(elems), 1)
 
-        # Assert response has 2 say verbs
-        say_query = root.findall('Say')
-        self.assertEquals(len(say_query), 2,
-                "Did not find two say verbs, instead found: %i " %
-                len(dial_query))
+        elems = root.findall('Say')
+        self.assertEquals(len(elems), 2)
+
+    def test_menu_phonobook(self):
+        self.test_app = app.test_client()
+        response = self.test_app.post('/menu', data={'Digits': '1'})
+
+        self.assertEquals(response.status, "200 OK")
+        root = ElementTree.fromstring(response.data)
+        self.assertEquals(root.tag, 'Response')
+
+        elems = root.findall('Gather')
+        self.assertEquals(len(elems), 1)
+
+        elems = elems[0].findall('Say')
+        self.assertEquals(len(elems), 1)
+        self.assertIn('phonebook', elems[0].text)
+
+    def test_menu_dial(self):
+        self.test_app = app.test_client()
+        response = self.test_app.post('/menu', data={'Digits': '2'})
+
+        self.assertEquals(response.status, "200 OK")
+        root = ElementTree.fromstring(response.data)
+        self.assertEquals(root.tag, 'Response')
+
+        elems = root.findall('Gather')
+        self.assertEquals(len(elems), 1)
+
+        elems = elems[0].findall('Say')
+        self.assertEquals(len(elems), 1)
+        self.assertIn('dial', elems[0].text)
+
+    def test_menu_bad(self):
+        self.test_app = app.test_client()
+        response = self.test_app.post('/menu', data={'Digits': '9'})
+
+        self.assertEquals(response.status, "302 FOUND")
+
+    def test_single_phonebook(self):
+        self.test_app = app.test_client()
+        response = self.test_app.post('/phonebook', data={'Digits': ntd('matt')})
+        self.assertEquals(response.status, "200 OK")
+        root = ElementTree.fromstring(response.data)
+        self.assertEquals(root.tag, 'Response')
+
+        elems = root.findall('Say')
+        self.assertEquals(len(elems), 1)
+
+        self.assertIn('calling matt', elems[0].text)
+
+    def test_no_phonebook(self):
+        self.test_app = app.test_client()
+        response = self.test_app.post('/phonebook', data={'Digits': ntd('xxx')})
+        self.assertEquals(response.status, "200 OK")
+        root = ElementTree.fromstring(response.data)
+        self.assertEquals(root.tag, 'Response')
+
+        elems = root.findall('Say')
+        self.assertEquals(len(elems), 1)
+
+        self.assertIn('no numbers found', elems[0].text)
+
+    def test_no_phonebook(self):
+        self.test_app = app.test_client()
+        from test_menu import ntd
+        response = self.test_app.post('/phonebook', data={'Digits': ntd('tum')})
+        self.assertEquals(response.status, "200 OK")
+        root = ElementTree.fromstring(response.data)
+        self.assertEquals(root.tag, 'Response')
+
+        elems = root.findall('Say')
+        self.assertEquals(len(elems), 1)
+
+        self.assertIn('more than 1 number found', elems[0].text)
 

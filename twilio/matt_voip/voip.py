@@ -4,7 +4,16 @@ from twilio.rest import TwilioRestClient
 import logging, time, socket
 from secrets import my_nums, sid, token
 from menu import Menu
-from contacts import uk_contacts, es_contacts
+import os
+
+TEST_MODE = os.environ.get("TEST_MODE", None)
+if not TEST_MODE:
+    from contacts import uk_contacts, es_contacts
+    contacts = uk_contacts
+    print("real contacts")
+else:
+    from test_menu import test_contacts as contacts
+    print("test contacts")
 
 # setup logger
 log = logging.getLogger('')
@@ -24,17 +33,17 @@ app = Flask(__name__)
 def phonebook():
     response = twilio.twiml.Response()
     digits = request.values.get('Digits', None)
-    menu = Menu(uk_contacts)
+    menu = Menu(contacts)
     options = menu.get_options(digits)
     if len(options) == 0:
         response.say("no numbers found")
         # how do redirect without duplication of code?
     elif len(options) == 1:
-        response.say("calling" + options[0][name])
-        response.dial(options[0][number])
+        response.say("calling " + options[0]['name'])
+        response.dial(options[0]['number'])
     else:
         response.say("more than 1 number found")
-        # do nothing for now
+        # do nothing for now, could offer a menu later
     return str(response)
         
 @app.route("/dial", methods=['GET', 'POST'])
@@ -48,8 +57,6 @@ def dial():
 
 @app.route("/menu", methods=['GET', 'POST'])
 def menu():
-    """Handle key press from a user."""
- 
     response = twilio.twiml.Response()
 
     # Get the digit pressed by the user
@@ -63,13 +70,14 @@ def menu():
     # dial a number
     elif digit_pressed == "2":
         with response.gather(finishOnKey='*', action="/dial", method="POST") as g:
-            g.say("press * to finish")
+            g.say("dial number, press * to finish")
         return str(response)
 
     else:
         return redirect("/")
 
 @app.route("/caller", methods=['GET', 'POST'])
+# untested
 def forward():
     from_number = request.values.get('From', None) 
     log.debug("got call from [%s]" % (from_number))
