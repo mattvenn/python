@@ -1,18 +1,17 @@
-from voip import app
+from voip import app, is_my_mobile, get_dial_info
 import unittest
 from xml.etree import ElementTree
 import os
 from test_menu import ntd
 from secrets import http_user, http_pass
-from secrets import twilio_nums, mobile_nums
-from config import Config, UK, ES
+from secrets import nums
 
 import logging
 import base64
+
 log = logging.getLogger('')
 log.setLevel(logging.INFO)
 
-config = Config(ES)
 
 # use test environment
 os.environ["TEST_MODE"] = "TRUE"
@@ -31,6 +30,24 @@ class TestVOIP(unittest.TestCase):
         kwargs['headers'] = headers
 
         return self.app.open(url, method=method, **kwargs)
+
+    def test_is_my_mobile(self):
+        self.assertTrue(is_my_mobile(nums['uk_mobile']))
+        self.assertTrue(is_my_mobile(nums['es_mobile']))
+        self.assertFalse(is_my_mobile('1234'))
+
+    def test_get_dial_info(self):
+        num, mp3 = get_dial_info('1234')
+        self.assertEquals(num, None)
+        self.assertEquals(mp3, None)
+
+        num, mp3 = get_dial_info(nums['uk_twilio'])
+        self.assertEquals(num, nums['es_mobile'])
+        self.assertEquals(mp3, 'UK.mp3')
+
+        num, mp3 = get_dial_info(nums['es_twilio'])
+        self.assertEquals(num, nums['uk_mobile'])
+        self.assertEquals(mp3, 'ES.mp3')
 
     def test_dial_noauth(self):
         response = self.app.post('/dial', data={'Digits':
@@ -132,23 +149,18 @@ class TestVOIP(unittest.TestCase):
         self.assertIn('more than 1 number found', elems[0].text)
 
     def test_start_noauth(self):
-        response = self.app.post('/caller', data={'From': mobile_nums[ES], 'To': twilio_nums[ES]})
+        response = self.app.post('/caller', data={'From': nums['es_mobile'], 'To': nums['es_twilio']})
         self.assertEquals(response.status, "401 UNAUTHORIZED")
 
     def test_start_from_me(self):
-        response = self.request('POST', '/caller', data={'From': mobile_nums[ES], 'To': twilio_nums[ES]}, auth=(http_user, http_pass))
+        response = self.request('POST', '/caller', data={'From': nums['es_mobile'], 'To': nums['es_twilio']}, auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
         self.assertEquals(root.tag, 'Response')
 
-        elems = root.findall('Say')
-        self.assertEquals(len(elems), 1)
-
-        self.assertIn('Hello', elems[0].text)
-        
     def test_start(self):
-        response = self.request('POST','/caller', data={'From': 11111, 'To': twilio_nums[ES]}, auth=(http_user,http_pass))
+        response = self.request('POST','/caller', data={'From': 11111, 'To': nums['es_twilio']}, auth=(http_user,http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -162,5 +174,5 @@ class TestVOIP(unittest.TestCase):
         elems = root.findall('Dial')
         self.assertEquals(len(elems), 1)
 
-        self.assertIn(mobile_nums[UK], elems[0].text)
+        self.assertIn(nums['uk_mobile'], elems[0].text)
 

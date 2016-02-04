@@ -6,6 +6,7 @@ from menu import Menu
 import os
 from http_auth import requires_auth
 from config import Config
+from secrets import nums
 
 log = logging.getLogger('')
 
@@ -16,9 +17,19 @@ if not TEST_MODE:
 else:
     from test_menu import test_contacts as contacts
 
-config = Config()
 app = Flask(__name__)
 
+def is_my_mobile(number):
+    return number == nums['uk_mobile'] or number == nums['es_mobile']
+
+def get_dial_info(twilio_number):
+    if twilio_number == nums['es_twilio']:
+        return nums['uk_mobile'], 'ES.mp3'
+    elif twilio_number == nums['uk_twilio']:
+        return nums['es_mobile'], 'UK.mp3'
+    else:
+        log.error("no such twilio number! %s" % twilio_number)
+        return None, None
 
 @app.route("/phonebook", methods=['GET', 'POST'])
 @requires_auth
@@ -87,8 +98,7 @@ def forward():
     response = twilio.twiml.Response()
 
     # allow from either mobile numbers
-    if config.is_my_mobile(from_number):
-        response.say("Hello " + str(config))
+    if is_my_mobile(from_number):
  
         with response.gather(numDigits=1, action="/menu", method="POST") as g:
             g.say("phonebook press 1, dial press 2")
@@ -97,12 +107,12 @@ def forward():
     
     else:
         # play message in correct language
-        mp3_file = config.get_mp3_filename(to_number)
+        my_number, mp3_file = get_dial_info(to_number)
 
         response.play(url_for('static', filename=mp3_file))
 
         # dial my number
-        response.dial(config.get_local_mobile(to_number))
+        response.dial(my_number)
 
         # if the dial fails TODO message
         response.say("The call failed")
