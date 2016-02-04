@@ -31,3 +31,9 @@ free of charge to his X number' and then redirect to Matt's mobile.
 
 Redirect to Matt's mobile.
 
+# Todo
+
+* on startup send text so I know if it's rebooted
+* save state (en vs es)
+* protect things like /handle-dial - how?
+* nice way to do the 2 modes
