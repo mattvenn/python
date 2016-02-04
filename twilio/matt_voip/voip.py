@@ -2,10 +2,10 @@ from flask import Flask, request, redirect, abort, url_for
 import twilio.twiml
 from twilio.rest import TwilioRestClient
 import logging, time, socket
-from secrets import my_nums, sid, token
 from menu import Menu
 import os
 from http_auth import requires_auth
+from config import Config, UK, ES
 
 log = logging.getLogger('')
 
@@ -16,9 +16,7 @@ if not TEST_MODE:
 else:
     from test_menu import test_contacts as contacts
 
-
-mode = 'uk'
-
+config = Config(ES)
 app = Flask(__name__)
 
 
@@ -87,9 +85,8 @@ def forward():
 
     response = twilio.twiml.Response()
 
-    # how to deal cleanly with this? TODO
-    if from_number == my_nums['es']:
-        response.say("Hello " + mode)
+    if from_number == config.get_local_mobile():
+        response.say("Hello " + str(config))
  
         with response.gather(numDigits=1, action="/menu", method="POST") as g:
             g.say("phonebook press 1, dial press 2")
@@ -98,10 +95,10 @@ def forward():
     
     else:
         # play message
-        response.play(url_for('static', filename=mode + '.mp3'))
+        response.play(url_for('static', filename=config.get_mp3_filename()))
 
         # dial my number
-        response.dial(my_nums[mode])
+        response.dial(config.get_local_mobile())
 
         # if the dial fails
         response.say("The call failed")

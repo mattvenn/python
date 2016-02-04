@@ -3,12 +3,15 @@ import unittest
 from xml.etree import ElementTree
 import os
 from test_menu import ntd
-from secrets import my_nums, http_user, http_pass
+from secrets import http_user, http_pass
+from config import Config, UK, ES
 
 import logging
 import base64
 log = logging.getLogger('')
 log.setLevel(logging.INFO)
+
+config = Config(ES)
 
 # use test environment
 os.environ["TEST_MODE"] = "TRUE"
@@ -128,11 +131,11 @@ class TestVOIP(unittest.TestCase):
         self.assertIn('more than 1 number found', elems[0].text)
 
     def test_start_noauth(self):
-        response = self.app.post('/caller', data={'From': my_nums['es']})
+        response = self.app.post('/caller', data={'From': config.get_local_mobile()})
         self.assertEquals(response.status, "401 UNAUTHORIZED")
 
     def test_start_from_me(self):
-        response = self.request('POST', '/caller', data={'From': my_nums['es']}, auth=(http_user, http_pass))
+        response = self.request('POST', '/caller', data={'From': config.get_local_mobile()}, auth=(http_user, http_pass))
 
         self.assertEquals(response.status, "200 OK")
         root = ElementTree.fromstring(response.data)
@@ -158,5 +161,5 @@ class TestVOIP(unittest.TestCase):
         elems = root.findall('Dial')
         self.assertEquals(len(elems), 1)
 
-        self.assertIn(my_nums['uk'], elems[0].text)
+        self.assertIn(config.get_local_mobile(), elems[0].text)
 
